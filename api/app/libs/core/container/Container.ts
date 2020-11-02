@@ -1,107 +1,92 @@
+import { ServiceLocator } from './ServiceLocator';
+
 export type Type<A> = { new(...args: any[]): A };
 export type ClassType = Type<any>;
 
-export type Tags = { [tag: string]: string | number };
-export type Labels = Array<string>;
-export type FactoryType = PropertyKey | ClassType;
+export type Tags = Array<string>;
+export type FactoryName = PropertyKey | ClassType;
 
-export type ResolveFunction = (type: FactoryType, tags?: Tags) => Promise<any>;
+export type ResolveFunction = (name: FactoryName) => Promise<any>;
 export type FactoryFunction = (resolve?: ResolveFunction) => any | Promise<any>;
-export type DecoratorFunction = (value: any, resolve?: ResolveFunction) => void | Promise<void>;
+export type DecoratorFunction = (service: any, resolve?: ResolveFunction) => void | Promise<void>;
 
 export type FactoryOptions = {
   factoryFunction: FactoryFunction,
   decoratorFunction?: DecoratorFunction,
-  labels?: Labels,
   tags?: Tags,
-  tagsKey?: string,
 }
 
 export type ValueOptions = {
   value: any,
-  tags?: Tags,
 }
 
-export type RegisterFactoryFunction = (type: FactoryType, options?: FactoryOptions) => void;
-export type RegisterValueFunction = (type: FactoryType, options?: ValueOptions) => void;
+export type RegisterFactoryFunction = (name: FactoryName, options?: FactoryOptions) => void;
+export type RegisterValueFunction = (name: FactoryName, options?: ValueOptions) => void;
 
 
 export class Container {
   private factories = new Map;
   private values = new Map;
 
-  factory: RegisterFactoryFunction = (type: FactoryType, options: FactoryOptions) => {
-    this.register(type, options);
+  factory: RegisterFactoryFunction = (name: FactoryName, options: FactoryOptions) => {
+    this.register(name, options);
   };
 
-  value: RegisterValueFunction = (name: FactoryType, options: ValueOptions) => {
-    const { value, tags } = options;
+  value: RegisterValueFunction = (name: FactoryName, options: ValueOptions) => {
+    const { value } = options;
     const factoryOptions: FactoryOptions = {
       factoryFunction: () => value,
-      tags,
     };
     this.register(name, factoryOptions);
   };
 
-  resolve: ResolveFunction = async (type: FactoryType, tags?: Tags) => {
-    const factoryOptions = this.resolveFactory(type, tags);
-    const { tagsKey } = factoryOptions;
+  resolve: ResolveFunction = async (name: FactoryName) => {
+    const factoryOptions = this.resolveFactory(name);
 
-    if (!this.values.get(type) || !this.values.get(type)[tagsKey]) {
-      await this.buildValue(tagsKey, type, factoryOptions);
+    if (!this.values.has(name)) {
+      await this.buildValue(name, factoryOptions);
     }
-
-    return this.values.get(type)[tagsKey];
+    return this.values.get(name);
   };
 
-  checkSanity = () => {
-    for (const [type, factories] of this.factories) {
-      const tagsKeys = factories.map((fo: FactoryOptions) => fo.tagsKey).sort();
-      for (let i = 0; i < tagsKeys.length - 1; i++) {
-        if (tagsKeys[i] === tagsKeys[i + 1]) {
-          throw new Error(`Multiple factories for type ${type.toString()} registered with same tags ${tagsKeys}`);
-        }
+  getTaggedFactories(tag: string): FactoryName[] {
+    const matched = [];
+    for (const [type, factory] of this.factories) {
+      if (factory.tags && factory.tags.has(tag)) {
+        matched.push(type);
       }
     }
-  };
+    return matched;
+  }
 
-  private register(type: FactoryType, options: FactoryOptions): void {
-    if (!this.factories.has(type)) {
-      this.factories.set(type, []);
+  private register(name: FactoryName, options: FactoryOptions): void {
+    if (this.factories.has(name)) {
+      throw new Error(`A factory with name ${name.toString()} is already registered`);
     }
-    this.factories.get(type).push({
+
+    this.factories.set(name, {
       ...options,
-      tagsKey: this.buildTagsKey(options.tags),
+      tags: new Set(options.tags || []),
     });
   };
 
-  private buildTagsKey(tags: Tags = {}): string {
-    return <string>Reflect.ownKeys(tags).sort().reduce((tagKey: string, tagName: string) => {
-      return `${tagKey}_${tagName}_${tags[tagName]}`;
-    }, '');
-  }
-
-  private resolveFactory(type: FactoryType, tags: Tags = {}): FactoryOptions {
-    const tagsKey = this.buildTagsKey(tags);
-    const typeFactories = this.factories.get(type) || [];
-    const matched = typeFactories.filter((factoryOptions: FactoryOptions) => factoryOptions.tagsKey === tagsKey);
-
-    if (matched.length === 0) {
-      throw new Error(`Could not find any instance of type ${type.toString()} with provided set of tags: ${JSON.stringify(tags)}`);
-    } else if (matched.length > 1) {
-      throw new Error(`Found more than one matching instances of type ${type.toString()} with provided set of tags: ${JSON.stringify(tags)}`);
+  private resolveFactory(name: FactoryName): FactoryOptions {
+    if (!this.factories.has(name)) {
+      throw new Error(`Unknown service/value with name ${name.toString()} requested`);
     }
 
-    return matched[0];
+    return this.factories.get(name);
   };
 
-  private async buildValue(valueName: string, type: FactoryType, factoryOptions: FactoryOptions) {
-    if (!this.values.has(type)) {
-      this.values.set(type, {});
+  private async buildValue(name: FactoryName, factoryOptions: FactoryOptions) {
+    const value = await factoryOptions.factoryFunction(this.resolve);
+    if (value instanceof ServiceLocator) {
+      value.container = this;
     }
-    this.values.get(type)[valueName] = await factoryOptions.factoryFunction(this.resolve);
+    this.values.set(name, value);
+
     if (factoryOptions.decoratorFunction) {
-      await factoryOptions.decoratorFunction(this.values.get(type)[valueName], this.resolve);
+      await factoryOptions.decoratorFunction(value, this.resolve);
     }
   }
 }

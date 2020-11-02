@@ -43,48 +43,46 @@ describe('ContainerFactory', () => {
       interface Weapon {
       }
 
-      const WeaponType = Symbol('Weapon');
-
-      @injectable(WeaponType, { tags: { era: 'modern' } })
+      @injectable()
       class Gun implements Weapon {
       }
 
-      @provider(WeaponType, () => [], { tags: { era: 'historic' } })
+      @provider(() => [])
       class Sword implements Weapon {
       }
 
-      @injectable(WeaponType)
+      @injectable()
       class Punch implements Weapon {
       }
 
-      @service('King', { dependsOn: [{ type: WeaponType, tags: { era: 'historic' } }] })
+      @service( { dependsOn: [Sword] })
       class King {
         constructor(public readonly weapon: Weapon) {
         }
       }
 
-      @service('King', { tags: { era: 'modern' } })
+      @service()
       class President {
         constructor(public readonly weapon: Weapon) {
         }
       }
 
-      @injectable('Sniper')
+      @injectable()
       class Sniper {
-        constructor(@inject(WeaponType, { era: 'modern' }) public readonly weapon: Weapon) {
+        constructor(@inject(Gun) public readonly weapon: Weapon) {
         }
       }
 
-      @injectable('CommonMan')
+      @injectable()
       class CommonMan {
-        constructor(@inject(WeaponType) public readonly weapon: Weapon) {
+        constructor(@inject(Punch) public readonly weapon: Weapon) {
         }
       }
 
-      const king = await container.resolve('King');
-      const president = await container.resolve('King', { era: 'modern' });
-      const sniper = await container.resolve('Sniper');
-      const commonMan = await container.resolve('CommonMan');
+      const king = await container.resolve(King);
+      const president = await container.resolve(President);
+      const sniper = await container.resolve(Sniper);
+      const commonMan = await container.resolve(CommonMan);
 
       expect(king.weapon).toBeInstanceOf(Sword);
       expect(sniper.weapon).toBeInstanceOf(Gun);
@@ -99,7 +97,7 @@ describe('ContainerFactory', () => {
       class Engine {
       }
 
-      @injectable({ tags: { wheels: 4 } })
+      @injectable()
       class Car1 {
         constructor(@inject(Engine) public readonly engine: Engine) {
         }
@@ -111,7 +109,7 @@ describe('ContainerFactory', () => {
         }
       }
 
-      const car1 = await container.resolve(Car1, { wheels: 4 });
+      const car1 = await container.resolve(Car1);
       const car2 = await container.resolve('Car2');
       expect(car1.engine).toBe(car2.engine);
       expect(car1.engine).toBe(await container.resolve(Engine));
@@ -120,9 +118,9 @@ describe('ContainerFactory', () => {
     it('does really cool stuff', async () => {
       const { container, provider, inject, injectable } = containerFactory.build();
 
-      @provider(() => ['mailgunTransport'])
-      @provider(() => ['sesTransport'], { tags: { type: 'ses' } })
-      @provider(() => ['jsonTransport'], { tags: { type: 'debug' } })
+      @provider('mailgunMailer', () => ['mailgunTransport'])
+      @provider('sesMailer', () => ['sesTransport'] )
+      @provider('jsonMailer', () => ['jsonTransport'])
       class Mailer {
         constructor(public readonly transport) {
         }
@@ -130,14 +128,14 @@ describe('ContainerFactory', () => {
 
       @injectable()
       class SomeRegularService {
-        constructor(@inject(Mailer) public readonly mailer: Mailer) {
+        constructor(@inject('mailgunMailer') public readonly mailer: Mailer) {
         }
       }
 
+      @provider('sisDebug', async (resolve) => [await resolve('jsonMailer')])
       @injectable()
-      @provider(async (resolve) => [await resolve(Mailer, { type: 'debug' })], { tags: { type: 'debug' } })
       class SomeImportantService {
-        constructor(@inject(Mailer, { type: 'ses' }) public readonly mailer: Mailer) {
+        constructor(@inject('sesMailer') public readonly mailer: Mailer) {
         }
       }
 
@@ -152,7 +150,7 @@ describe('ContainerFactory', () => {
       expect(sis.mailer.transport).toBe('sesTransport');
 
 
-      const sisDebug = await container.resolve(SomeImportantService, { type: 'debug' });
+      const sisDebug = await container.resolve('sisDebug');
       expect(sisDebug).toBeInstanceOf(SomeImportantService);
       expect(sisDebug.mailer).toBeInstanceOf(Mailer);
       expect(sisDebug.mailer.transport).toBe('jsonTransport');
@@ -163,7 +161,7 @@ describe('ContainerFactory', () => {
       expect(() => {
         const { provider } = containerFactory.build();
 
-        @provider()
+        @provider(undefined)
         class A {
         }
 
@@ -203,14 +201,14 @@ describe('ContainerFactory', () => {
         class B {
         }
 
-        @injectable(B, { tags: { type: 'a' } })
+        @injectable(A)
         class A extends B {
         }
 
         const b = await container.resolve(B);
         expect(b).toBeInstanceOf(B);
 
-        const a = await container.resolve(B, { type: 'a' });
+        const a = await container.resolve(A);
         expect(a).toBeInstanceOf(A);
       });
     });
