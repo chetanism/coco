@@ -10,7 +10,8 @@
     "build": "npm run clear && npm run compile",
     "start:dev": "PORT=3500 ts-node-dev --respawn --transpile-only --no-notify app/start.ts",
     "start:prod": "npm run build && PORT=3500 NODE_ENV=production node build/start.js",
-    "start": "NODE_ENV=production node build/start.js"
+    "start": "NODE_ENV=production node build/start.js",
+    "cli": "ts-node app/src/cli"
   },
   "author": "chetan@clik.ai",
   "license": "ISC",
@@ -25,5 +26,9 @@
     "ts-node": "^9.0.0",
     "ts-node-dev": "^1.0.0",
     "typescript": "^4.0.5"
+  },
+  "dependencies": {
+    "command-line-args": "^5.1.1",
+    "deepmerge": "^4.2.2"
   }
 }

@@ -1,10 +1,10 @@
 import { TaggedServiceLocator } from './TaggedServiceLocator';
-import { ContainerFactory } from './ContainerFactory';
 import { ServiceLocator } from './ServiceLocator';
+import { ContainerBuilder } from './ContainerBuilder';
 
 describe('TaggedServiceLocator', () => {
   it('works as expected', async () => {
-    const { container, injectable, inject } = new ContainerFactory().build();
+    const { container, decorators: {injectable, inject }} = new ContainerBuilder().buildContainer();
 
     @injectable({ tags: ['test'] })
     class A {

@@ -1,6 +1,8 @@
 import * as commandLineArgs from 'command-line-args';
 
 abstract class Command {
+  public static Command = '';
+
   public async runCommand(argv) {
     const optionDefinitions = this.getOptions();
     const options = commandLineArgs(optionDefinitions, { argv });

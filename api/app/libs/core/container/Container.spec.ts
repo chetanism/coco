@@ -79,7 +79,20 @@ describe('Container', () => {
 
       const nada = container.getTaggedFactories('nada');
       expect(nada).toBeInstanceOf(Array);
-      expect(nada).toHaveLength(0)
+      expect(nada).toHaveLength(0);
+    });
+  });
+
+  describe('#filterFactories', () => {
+    it('returns filtered factories', () => {
+      container.factory('f2', { factoryFunction: () => 42 });
+      container.factory('f3', { factoryFunction: () => 43 });
+      container.factory('s2', { factoryFunction: () => 62 });
+
+      const filtered = container.filterFactories((name: string) => name.startsWith('f'));
+      expect(filtered).toHaveLength(2);
+      expect(filtered.includes('s2')).toBe(false);
+
     });
   });
 
@@ -116,6 +129,49 @@ describe('Container', () => {
       expect(father).toBe(son.father);
     });
   });
+
+  // describe('#addAutoTagHook', () => {
+  //   it('adds hooks and returns function to remove it', () => {
+  //     expect(container['autoTagHooks'].size).toBe(0);
+  //     const remove = container.addAutoTagHook(() => {
+  //     });
+  //     expect(container['autoTagHooks'].size).toBe(1);
+  //     remove();
+  //     expect(container['autoTagHooks'].size).toBe(0);
+  //   });
+  // });
+  //
+  // describe('* auto tagging', () => {
+  //   it('works as expected', () => {
+  //     abstract class I {
+  //     }
+  //
+  //     container.addAutoTagHook((name) => {
+  //       if (typeof name === 'function' && name.prototype instanceof I) {
+  //         return ['tag-i'];
+  //       }
+  //     });
+  //
+  //     class A extends I {
+  //     }
+  //
+  //     class B {
+  //     }
+  //
+  //     container.factory(A, {
+  //       factoryFunction: () => new A,
+  //     });
+  //
+  //     container.factory(B, {
+  //       factoryFunction: () => new B,
+  //       tags: ['b'],
+  //     });
+  //
+  //
+  //     expect(container.getTaggedFactories('tag-i').includes(A)).toBe(true);
+  //     expect(container.getTaggedFactories('tag-i').includes(B)).toBe(false);
+  //   });
+  // });
 
   describe('* async factories', () => {
     it('can resolve async values', async () => {

@@ -1,10 +1,10 @@
 import { ServiceLocator } from './ServiceLocator';
-import { ContainerFactory } from './ContainerFactory';
 import { FactoryName } from './Container';
+import { ContainerBuilder } from './ContainerBuilder';
 
 describe('ServiceLocator', () => {
   it('works as expected', async () => {
-    const { container, injectable, inject } = (new ContainerFactory()).build();
+    const { container, decorators: {injectable, inject }} = (new ContainerBuilder()).buildContainer();
 
     @injectable()
     class A {

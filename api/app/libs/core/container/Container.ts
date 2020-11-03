@@ -9,6 +9,7 @@ export type FactoryName = PropertyKey | ClassType;
 export type ResolveFunction = (name: FactoryName) => Promise<any>;
 export type FactoryFunction = (resolve?: ResolveFunction) => any | Promise<any>;
 export type DecoratorFunction = (service: any, resolve?: ResolveFunction) => void | Promise<void>;
+export type FilterFactoryFunction = (name: FactoryName, options: FactoryOptions) => boolean;
 
 export type FactoryOptions = {
   factoryFunction: FactoryFunction,
@@ -23,10 +24,23 @@ export type ValueOptions = {
 export type RegisterFactoryFunction = (name: FactoryName, options?: FactoryOptions) => void;
 export type RegisterValueFunction = (name: FactoryName, options?: ValueOptions) => void;
 
+// export type AutoTagHook = (name: FactoryName, options: FactoryOptions) => string[] | void;
 
 export class Container {
   private factories = new Map;
   private values = new Map;
+  private globalPausePromise = Promise.resolve();
+
+  pauseFor(promise) {
+    this.globalPausePromise = this.globalPausePromise.then(() => promise);
+  }
+
+  // private autoTagHooks = new Map;
+
+  // addAutoTagHook(registerHook: AutoTagHook) {
+  //   this.autoTagHooks.set(registerHook, registerHook);
+  //   return () => this.autoTagHooks.delete(registerHook);
+  // }
 
   factory: RegisterFactoryFunction = (name: FactoryName, options: FactoryOptions) => {
     this.register(name, options);
@@ -41,6 +55,7 @@ export class Container {
   };
 
   resolve: ResolveFunction = async (name: FactoryName) => {
+    await this.globalPausePromise;
     const factoryOptions = this.resolveFactory(name);
 
     if (!this.values.has(name)) {
@@ -59,10 +74,21 @@ export class Container {
     return matched;
   }
 
+  filterFactories(filter: FilterFactoryFunction): FactoryName[] {
+    return Array.from(this.factories.entries())
+      .filter(([name, options]) => filter(name, options))
+      .map(([name]) => name);
+  }
+
   private register(name: FactoryName, options: FactoryOptions): void {
     if (this.factories.has(name)) {
       throw new Error(`A factory with name ${name.toString()} is already registered`);
     }
+
+    // for (const hook of this.autoTagHooks.values()) {
+    //   const tags = hook(name, { ...options }) || [];
+    //   options.tags = [...(options.tags || []), ...tags];
+    // }
 
     this.factories.set(name, {
       ...options,
