@@ -20,10 +20,21 @@ export abstract class ServiceLocator {
     return this._container.resolve(name);
   }
 
+  async resolveByAlias(alias: string) {
+    if (!this.getSupportedServicesAliases().includes(alias)) {
+      throw new Error(`Unsupported service requested by alias: ${alias}`);
+    }
+    return this._container.resolveByAlias(alias);
+  }
+
   async resolveAll() {
     return Promise.all(
       this.getSupportedServices().map((type: FactoryName) => this.resolve(type)),
     );
+  }
+
+  private getSupportedServicesAliases() {
+    return this.getSupportedServices().map((name: FactoryName) => this._container['factories'].get(name).alias)
   }
 }
 

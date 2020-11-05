@@ -1,5 +1,5 @@
-import { FactoryName, FactoryOptions, FilteredServiceLocator, Type } from '../../core/container';
-import { Command } from './Command';
+import { FactoryName, FactoryOptions, FilteredServiceLocator, Type } from '../../../core/container';
+import { Command } from '../model/Command';
 
 interface CommandType extends Type<Command> {
   Command: string

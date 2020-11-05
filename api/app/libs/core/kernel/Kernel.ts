@@ -18,6 +18,7 @@ export type KernelOptions = {
   debug: boolean,
   env: string,
   autoloadDirs: string[],
+  config: object,
 }
 
 export type AddPluginOptions = {
@@ -28,7 +29,7 @@ export type AddPluginOptions = {
 async function sleep(n) {
   return new Promise((resolve) => {
     setTimeout(() => resolve(), n);
-  })
+  });
 }
 
 export class Kernel {
@@ -58,17 +59,8 @@ export class Kernel {
 
   private async autoloadFiles() {
     console.log('Registering services..');
-    for(const dir of this.options.autoloadDirs) {
+    for (const dir of this.options.autoloadDirs) {
       await this.autoloader.load(dir);
     }
   }
 }
-
-// bundles can->
-// add commands, -> add command classes to container
-// have config, ->
-// have events listener, ->
-// register services, ->
-// get services injected, ->
-// trigger events ->
-

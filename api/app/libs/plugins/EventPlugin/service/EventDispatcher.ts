@@ -1,4 +1,4 @@
-import { AbstractEvent } from './AbstractEvent';
+import { AbstractEvent } from '../model/AbstractEvent';
 import { EventEmitter } from 'events';
 import { EventListenerServiceLocator } from './EventListenerServiceLocator';
 import { AbstractEventListener } from './AbstractEventListener';

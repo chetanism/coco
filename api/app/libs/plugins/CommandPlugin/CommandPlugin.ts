@@ -1,7 +1,7 @@
 import { AbstractPlugin } from '../../core/plugins/AbstractPlugin';
 import { ServiceContainer } from '../../core/container';
-import { CommandServiceLocator } from './CommandServiceLocator';
-import { CommandRunner } from './CommandRunner';
+import { CommandServiceLocator } from './service/CommandServiceLocator';
+import { CommandRunner } from './service/CommandRunner';
 
 export class CommandPlugin extends AbstractPlugin {
   getDefaultNamespace() {

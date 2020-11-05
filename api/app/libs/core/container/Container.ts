@@ -15,6 +15,7 @@ export type FactoryOptions = {
   factoryFunction: FactoryFunction,
   decoratorFunction?: DecoratorFunction,
   tags?: Tags,
+  alias?: string,
 }
 
 export type ValueOptions = {
@@ -29,6 +30,8 @@ export type RegisterValueFunction = (name: FactoryName, options?: ValueOptions) 
 export class Container {
   private factories = new Map;
   private values = new Map;
+  private aliasValues: Map<string, any> = new Map;
+
   private globalPausePromise = Promise.resolve();
 
   pauseFor(promise) {
@@ -59,6 +62,16 @@ export class Container {
     const factoryOptions = this.resolveFactory(name);
 
     if (!this.values.has(name)) {
+      await this.buildValue(name, factoryOptions);
+    }
+    return this.values.get(name);
+  };
+
+  resolveByAlias: ResolveFunction = async (alias: string) => {
+    await this.globalPausePromise;
+    const [name, factoryOptions]: [FactoryName, FactoryOptions] = this.resolveFactoryByAlias(alias);
+
+    if (!this.aliasValues.has(alias)) {
       await this.buildValue(name, factoryOptions);
     }
     return this.values.get(name);
@@ -104,12 +117,32 @@ export class Container {
     return this.factories.get(name);
   };
 
+  private resolveFactoryByAlias(alias: string): [FactoryName, FactoryOptions] {
+    for (const [name, factoryOptions] of this.factories) {
+      if (factoryOptions.alias === alias) {
+        return [name, factoryOptions];
+      }
+    }
+
+    throw new Error(`Unknown service/value with alias ${alias} requested`);
+  };
+
   private async buildValue(name: FactoryName, factoryOptions: FactoryOptions) {
     const value = await factoryOptions.factoryFunction(this.resolve);
     if (value instanceof ServiceLocator) {
       value.container = this;
     }
+
     this.values.set(name, value);
+
+    const { alias } = factoryOptions;
+    if (alias) {
+      if (this.aliasValues.has(alias)) {
+        throw new Error(`There is already a factory registered with alias: ${alias}`);
+      }
+
+      this.aliasValues.set(alias, value);
+    }
 
     if (factoryOptions.decoratorFunction) {
       await factoryOptions.decoratorFunction(value, this.resolve);

@@ -1,4 +1,4 @@
-export * from './Command';
-export * from './CommandRunner';
-export * from './CommandServiceLocator';
+export * from './model/Command';
+export * from './service/CommandRunner';
+export * from './service/CommandServiceLocator';
 export * from './CommandPlugin';

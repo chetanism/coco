@@ -1,7 +1,7 @@
 import { AbstractPlugin } from '../../core/plugins/AbstractPlugin';
 import { ServiceContainer } from '../../core/container';
-import { EventDispatcher } from './EventDispatcher';
-import { EventListenerServiceLocator } from './EventListenerServiceLocator';
+import { EventDispatcher } from './service/EventDispatcher';
+import { EventListenerServiceLocator } from './service/EventListenerServiceLocator';
 
 export class EventPlugin extends AbstractPlugin {
   getDefaultNamespace() {

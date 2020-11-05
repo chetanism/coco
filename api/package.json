@@ -17,6 +17,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^26.0.15",
+    "@types/nodemailer": "^6.4.0",
     "eslint": "^7.12.0",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-babel": "^5.3.1",
@@ -28,7 +29,10 @@
     "typescript": "^4.0.5"
   },
   "dependencies": {
+    "aws-sdk": "^2.784.0",
     "command-line-args": "^5.1.1",
-    "deepmerge": "^4.2.2"
+    "deepmerge": "^4.2.2",
+    "nodemailer": "^6.4.14",
+    "nodemailer-mailgun-transport": "^2.0.1"
   }
 }

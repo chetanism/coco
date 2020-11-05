@@ -1,4 +1,4 @@
-import { FactoryName, FilteredServiceLocator } from '../../core/container';
+import { FactoryName, FilteredServiceLocator } from '../../../core/container';
 import { AbstractEventListener } from './AbstractEventListener';
 
 export class EventListenerServiceLocator extends FilteredServiceLocator {

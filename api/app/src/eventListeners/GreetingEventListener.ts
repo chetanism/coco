@@ -1,4 +1,4 @@
-import { AbstractEventListener, EventHandler } from '../../libs/plugins/EventPlugin/AbstractEventListener';
+import { AbstractEventListener, EventHandler } from '../../libs/plugins/EventPlugin/service/AbstractEventListener';
 import { GreetingEvent } from '../events/GreetingEvent';
 import { injectable } from '../boot';
 

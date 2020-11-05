@@ -11,12 +11,14 @@ export type ServiceDecoratorOptions = {
   dependsOn?: FactoryName[],
   decoratorFunction?: DecoratorFunction,
   getDependencies?: GetDependenciesFunction,
+  alias?: string,
 }
 
 export type InjectableOptions = {
   tags?: Tags,
   decoratorFunction?: DecoratorFunction,
   getDependencies?: InjectableGetDependenciesFunction,
+  alias?: string,
 }
 
 export type InjectableDecorator =
@@ -64,7 +66,7 @@ export class ContainerDecoratorsBuilder {
         name = undefined;
       }
 
-      const { decoratorFunction, tags = [], dependsOn = [], getDependencies } = options;
+      const { decoratorFunction, tags = [], dependsOn = [], getDependencies, alias } = options;
 
       const dependenciesGetter: GetDependenciesFunction = getDependencies || (async (resolve: ResolveFunction) => {
         return Promise.all(dependsOn.map((type) => {
@@ -84,6 +86,7 @@ export class ContainerDecoratorsBuilder {
             },
             decoratorFunction,
             tags,
+            alias,
           });
       };
     };
@@ -109,7 +112,7 @@ export class ContainerDecoratorsBuilder {
         name = undefined;
       }
 
-      const { tags = [], decoratorFunction, getDependencies } = options;
+      const { tags = [], decoratorFunction, getDependencies, alias } = options;
       const dependenciesGetter: InjectableGetDependenciesFunction = getDependencies || (() => ({}));
 
       return (Klass) => {
@@ -143,7 +146,7 @@ export class ContainerDecoratorsBuilder {
           },
           tags,
           decoratorFunction,
-
+          alias,
         });
       };
     };
