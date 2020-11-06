@@ -1,37 +1,171 @@
+import 'reflect-metadata';
 import * as express from 'express';
-import { Application } from 'express';
+import { Application, Router } from 'express';
 import { ApplicationMiddlewareServiceLocator } from './ApplicationMiddlewareServiceLocator';
 import { AbstractApplicationMiddleware } from './AbstractApplicationMiddleware';
+import { ControllerLocator } from './ControllerLocator';
+import { ControllerKey, ControllerOptions } from '../decorators/controller';
+import { AbstractController } from './AbstractController';
+import { ActionKey } from '../decorators/action';
 
 export type ApplicationOptions = {
   staticPath?: string,
 }
 
-export class ApplicationBuilder {
-  private app: Application;
-  private options: ApplicationOptions;
+type RouterDefinition = {
+  route: string,
+  router: Router,
+  parent: AbstractController,
+}
 
+export class ApplicationBuilder {
   constructor(
-    options: ApplicationOptions = {},
+    private readonly options: ApplicationOptions = {},
     private readonly middlewaresLocator: ApplicationMiddlewareServiceLocator,
+    private readonly controllerLocator: ControllerLocator,
   ) {
   }
 
   async build() {
-    this.app = express();
+    const app: Application = express();
     const middlewares: AbstractApplicationMiddleware[] = await this.middlewaresLocator.resolveAll();
 
     for (const middleware of middlewares) {
-      const mw = middleware.get();
+      const mw = middleware.middleware || middleware.get();
       if (mw) {
-        this.app.use(mw);
+        app.use(mw);
       }
     }
 
     if (this.options.staticPath) {
-      this.app.use(express.static(this.options.staticPath));
+      app.use(express.static(this.options.staticPath));
     }
 
-    return this.app;
+    await this.buildControllers(app);
+
+    return app;
   }
+
+  private async buildControllers(app: Application) {
+    const controllers: AbstractController[] = await this.controllerLocator.resolveAll();
+    const routerDefinitions: Map<AbstractController, RouterDefinition> = new Map;
+
+    // build controller routers
+    for (const controller of controllers) {
+      routerDefinitions.set(
+        controller,
+        await this.buildControllerRouter(controller),
+      );
+    }
+
+    // bind to parent router
+    for (const { router, route, parent } of routerDefinitions.values()) {
+      if (parent) {
+        const { router: parentRouter } = routerDefinitions.get(parent);
+        parentRouter.use(route, router);
+      }
+    }
+
+    // pick root level routers
+    const rootRouters = Array.from(routerDefinitions.values()).filter(({ parent }) => !parent);
+
+    for(const rootRouter of rootRouters) {
+      app.use(rootRouter.route, rootRouter.router);
+    }
+  }
+
+  private async buildControllerRouter(controller: AbstractController): Promise<RouterDefinition> {
+    const router = express.Router();
+    const controllerOptions = Reflect.getOwnMetadata(ControllerKey, controller.constructor);
+    const { route, middlewares, parent }: ControllerOptions = controllerOptions;
+
+    const resolvedMiddlewares: AbstractApplicationMiddleware[] = await Promise.all(
+      (middlewares || []).map((mw) => this.middlewaresLocator.resolve(mw)),
+    );
+
+    for (const middleware of resolvedMiddlewares) {
+      const mw = middleware.middleware || middleware.get();
+      if (mw) {
+        router.use(mw);
+      }
+    }
+
+    await this.buildControllerActions(controller, router);
+
+    return {
+      router,
+      route,
+      parent: parent ? await this.controllerLocator.resolve(parent) : null,
+    };
+  }
+
+  private async buildControllerActions(controller: AbstractController, router) {
+    const actions = Reflect.getOwnMetadata(ActionKey, controller.constructor.prototype);
+
+    for (const action of actions) {
+      // const actionOptions = Reflect.getOwnMetadata(ActionKey, controller);
+      const { propertyKey, options: { route, methods, name, middlewares } } = action;
+
+      const resolvedMiddlewares: AbstractApplicationMiddleware[] = await Promise.all(
+        (middlewares || []).map((amw) => this.middlewaresLocator.resolve(amw)),
+      );
+
+      const middlewaresToApply = resolvedMiddlewares
+        .map((mw) => mw.middleware || mw.get())
+        .filter((mw) => mw);
+
+      const methodsToApply = methods || ['use'];
+
+      for (const method of methodsToApply) {
+        router[method](route, middlewaresToApply, controller[propertyKey].bind(controller));
+      }
+    }
+  }
+
+
+  //
+  // private async buildControllers(app: Application) {
+  //   const controllers: AbstractController[] = await this.controllerLocator.resolveAll();
+  //   const router = express.Router();
+  //
+  //   for (const controller of controllers) {
+  //     const actions = Reflect.getOwnMetadata(ActionKey, controller);
+  //
+  //     const [fullParentPath, allParentMiddlewares] = await this.buildControllerHierarchy(controller);
+  //
+  //     for (const action of actions) {
+  //       const actionOptions = Reflect.getOwnMetadata(ActionKey, controller);
+  //       const { route: actionRoute, methods, name, middlewares: actionMiddlewares } = actionOptions;
+  //
+  //       const resolvedActionMiddlewares = await Promise.all(
+  //         actionMiddlewares.map((amw) => this.middlewaresLocator.resolve(amw)),
+  //       );
+  //
+  //       const fullPath = fullParentPath + actionRoute;
+  //       const allMiddlewares = [...allParentMiddlewares, ...resolvedActionMiddlewares];
+  //
+  //
+  //     }
+  //   }
+  // }
+  //
+  // private async buildControllerHierarchy(controller: AbstractController): Promise<[string, any[]]> {
+  //   const controllerOptions = Reflect.getOwnMetadata(ControllerKey, controller.constructor);
+  //   const { route, middlewares, parent } = controllerOptions;
+  //
+  //   let parentPath = '';
+  //   let parentMiddlewares = [];
+  //   if (parent) {
+  //     const parentController = await this.controllerLocator.resolve(parent);
+  //     [parentPath, parentMiddlewares] = await this.buildControllerHierarchy(parentController);
+  //   }
+  //
+  //   const resolvedMiddlewares = await Promise.all(
+  //     middlewares.map((mw) => this.middlewaresLocator.resolve(mw)),
+  //   );
+  //
+  //   return [parentPath + route, [...parentMiddlewares, ...resolvedMiddlewares]];
+  // }
+
+
 }

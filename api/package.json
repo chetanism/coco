@@ -8,7 +8,7 @@
     "clear": "rm -rf build",
     "compile": "tsc",
     "build": "npm run clear && npm run compile",
-    "start:dev": "PORT=3500 ts-node-dev --respawn --transpile-only --no-notify app/start.ts",
+    "start:dev": "PORT=3500 ts-node-dev --respawn --transpile-only --no-notify app/src/app.ts",
     "start:prod": "npm run build && PORT=3500 NODE_ENV=production node build/start.js",
     "start": "NODE_ENV=production node build/start.js",
     "cli": "ts-node app/src/cli"
