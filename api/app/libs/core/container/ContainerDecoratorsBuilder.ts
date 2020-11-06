@@ -34,7 +34,7 @@ export type ContainerDecorators = {
   service: ServiceDecorator,
 }
 
-function isFactoryName(value: FactoryName | ServiceDecoratorOptions | InjectableOptions) {
+export function isFactoryName(value: FactoryName | ServiceDecoratorOptions | InjectableOptions) {
   return ['string', 'number', 'symbol', 'function'].includes(typeof value);
 }
 
