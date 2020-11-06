@@ -3,14 +3,12 @@ import {
   ContainerDecoratorsBuilder,
   InjectableDecorator,
   InjectDecorator,
-  ServiceDecorator,
 } from './ContainerDecoratorsBuilder';
 
 export type ServiceAutoTagger = (name: FactoryName, options: FactoryOptions) => string[] | undefined;
 export type ServiceContainer = {
   container: Container,
   decorators: {
-    service: ServiceDecorator,
     inject: InjectDecorator,
     injectable: InjectableDecorator
   }

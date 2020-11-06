@@ -24,16 +24,16 @@ export class MailerPlugin extends AbstractPlugin {
   }
 
   registerServices(serviceContainer: ServiceContainer, config: MailServiceOptions) {
-    const { decorators: { service } } = serviceContainer;
+    const { decorators: { injectable } } = serviceContainer;
 
-    service({ getDependencies: () => [config], alias: 'mailer.transport.json' })(JsonTransport);
-    service({ getDependencies: () => [config], alias: 'mailer.transport.mailgun' })(MailgunTransport);
-    service({ getDependencies: () => [config], alias: 'mailer.transport.stream' })(StreamTransport);
-    service({ getDependencies: () => [config], alias: 'mailer.transport.ses' })(SESTransport);
+    injectable({ getDependenciesList: () => [config], alias: 'mailer.transport.json' })(JsonTransport);
+    injectable({ getDependenciesList: () => [config], alias: 'mailer.transport.mailgun' })(MailgunTransport);
+    injectable({ getDependenciesList: () => [config], alias: 'mailer.transport.stream' })(StreamTransport);
+    injectable({ getDependenciesList: () => [config], alias: 'mailer.transport.ses' })(SESTransport);
 
-    service()(MailTransportServiceLocator);
-    service({
-      getDependencies: async (resolve) => [config, await resolve(MailTransportServiceLocator)],
+    injectable()(MailTransportServiceLocator);
+    injectable({
+      getDependenciesList: async (resolve) => [config, await resolve(MailTransportServiceLocator)],
     })(MailService);
   }
 }

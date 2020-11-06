@@ -1,23 +1,17 @@
 import 'reflect-metadata';
-import { ClassType, Container, DecoratorFunction, FactoryName, ResolveFunction, Tags } from './Container';
+import { Container, DecoratorFunction, FactoryName, ResolveFunction, Tags } from './Container';
 
 
-export type GetDependenciesFunction = (ResolveFunction) => any[] | Promise<any[]>;
+export type GetDependenciesListFunction = (ResolveFunction) => any[] | Promise<any[]>;
 export type InjectableGetDependenciesFunction =
   (ResolveFunction) => { [key: number]: any } | Promise<{ [key: number]: any }>;
-
-export type ServiceDecoratorOptions = {
-  tags?: Tags,
-  dependsOn?: FactoryName[],
-  decoratorFunction?: DecoratorFunction,
-  getDependencies?: GetDependenciesFunction,
-  alias?: string,
-}
 
 export type InjectableOptions = {
   tags?: Tags,
   decoratorFunction?: DecoratorFunction,
   getDependencies?: InjectableGetDependenciesFunction,
+  dependsOn?: FactoryName[],
+  getDependenciesList?: GetDependenciesListFunction
   alias?: string,
 }
 
@@ -25,22 +19,18 @@ export type InjectableDecorator =
   (name?: FactoryName | InjectableOptions, options?: InjectableOptions) => (ClassType) => void
 export type InjectDecorator =
   (name: FactoryName) => (target: Object, propertyKey: string | symbol, parameterIndex: number) => void;
-export type ServiceDecorator =
-  (name?: FactoryName | ServiceDecoratorOptions, options?: ServiceDecoratorOptions) => (ClassType) => void;
 
 export type ContainerDecorators = {
   injectable: InjectableDecorator,
   inject: InjectDecorator
-  service: ServiceDecorator,
 }
 
-export function isFactoryName(value: FactoryName | ServiceDecoratorOptions | InjectableOptions) {
+export function isFactoryName(value: FactoryName | InjectableOptions) {
   return ['string', 'number', 'symbol', 'function'].includes(typeof value);
 }
 
 function toInteger(name, value: any): number {
-  let i: any = '';
-  i = parseInt(value);
+  let i = parseInt(value);
   if (i.toString() === value) {
     return i;
   }
@@ -55,40 +45,6 @@ export class ContainerDecoratorsBuilder {
     return {
       inject: this.buildInjectDecorator(containerId),
       injectable: this.buildInjectableDecorator(container, containerId),
-      service: this.buildServiceDecorator(container),
-    };
-  }
-
-  private buildServiceDecorator(container: Container) {
-    return (name?: FactoryName | ServiceDecoratorOptions, options: ServiceDecoratorOptions = {}) => {
-      if (!isFactoryName(name)) {
-        options = <ServiceDecoratorOptions>(name || {});
-        name = undefined;
-      }
-
-      const { decoratorFunction, tags = [], dependsOn = [], getDependencies, alias } = options;
-
-      const dependenciesGetter: GetDependenciesFunction = getDependencies || (async (resolve: ResolveFunction) => {
-        return Promise.all(dependsOn.map((type) => {
-          return resolve(type);
-        }));
-      });
-
-      return (Klass) => {
-        const typeToRegister = name === undefined ? Klass : name;
-
-        container.factory(
-          typeToRegister,
-          {
-            factoryFunction: async (resolve: ResolveFunction) => {
-              const dependencies = await dependenciesGetter(resolve);
-              return new Klass(...dependencies);
-            },
-            decoratorFunction,
-            tags,
-            alias,
-          });
-      };
     };
   }
 
@@ -112,33 +68,44 @@ export class ContainerDecoratorsBuilder {
         name = undefined;
       }
 
-      const { tags = [], decoratorFunction, getDependencies, alias } = options;
+      const { tags = [], decoratorFunction, getDependencies, alias, dependsOn, getDependenciesList } = options;
+
       const dependenciesGetter: InjectableGetDependenciesFunction = getDependencies || (() => ({}));
+      const dependenciesListGetter: GetDependenciesListFunction = getDependenciesList || (async (resolve: ResolveFunction) => {
+        return Promise.all(dependsOn.map((type) => {
+          return resolve(type);
+        }));
+      });
 
       return (Klass) => {
         const typeToRegister = name === undefined ? Klass : name;
 
         container.factory(typeToRegister, {
           factoryFunction: async (resolve: ResolveFunction) => {
-            const injections = Reflect.getOwnMetadata(containerId, Klass) || [];
-            const providedDeps = await dependenciesGetter(resolve);
+            let dependencies = [];
 
-            for (const { type, index } of injections) {
-              const dep = await resolve(type);
-              if (providedDeps[index]) {
-                throw new Error(`The dependency for ${typeToRegister.toString()} at index ${index} is already provided by the getDependencies function provided with the injectable decorator. It can not be injected in the constructor.`);
+            if (dependsOn || getDependenciesList) {
+              dependencies = await dependenciesListGetter(resolve);
+            } else {
+              const injections = Reflect.getOwnMetadata(containerId, Klass) || [];
+              const providedDeps = await dependenciesGetter(resolve);
+
+              for (const { type, index } of injections) {
+                const dep = await resolve(type);
+                if (providedDeps[index]) {
+                  throw new Error(`The dependency for ${typeToRegister.toString()} at index ${index} is already provided by the getDependencies function provided with the injectable decorator. It can not be injected in the constructor.`);
+                }
+                providedDeps[index] = dep;
               }
-              providedDeps[index] = dep;
-            }
 
-            const dependencies = [];
-            for (const depIndex of Reflect.ownKeys(providedDeps)) {
-              dependencies[toInteger(typeToRegister, depIndex)] = providedDeps[depIndex];
-            }
+              for (const depIndex of Reflect.ownKeys(providedDeps)) {
+                dependencies[toInteger(typeToRegister, depIndex)] = providedDeps[depIndex];
+              }
 
-            for (let i = 0; i < dependencies.length; i++) {
-              if (dependencies[i] === undefined) {
-                console.warn(`You have probably missed to provide a dependency at position ${i} for ${typeToRegister.toString()}`);
+              for (let i = 0; i < dependencies.length; i++) {
+                if (dependencies[i] === undefined) {
+                  console.warn(`You have probably missed to provide a dependency at position ${i} for ${typeToRegister.toString()}`);
+                }
               }
             }
 

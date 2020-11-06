@@ -22,5 +22,5 @@ kernel.addPlugin(new SerializerPlugin());
 
 kernel.boot(appConfig);
 
-export const { container, decorators: { injectable, inject, service } } = kernel.getContainer();
+export const { container, decorators: { injectable, inject } } = kernel.getContainer();
 

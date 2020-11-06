@@ -2,24 +2,23 @@ import {
   ContainerDecoratorsBuilder,
   InjectableDecorator,
   InjectDecorator,
-  ServiceDecorator,
 } from './ContainerDecoratorsBuilder';
 import { Container } from './Container';
 
 describe('ContainerDecoratorsBuilder', () => {
   const builder = new ContainerDecoratorsBuilder();
-  let container: Container, service: ServiceDecorator, inject: InjectDecorator, injectable: InjectableDecorator;
+  let container: Container, inject: InjectDecorator, injectable: InjectableDecorator;
 
   beforeEach(() => {
     container = new Container();
-    ({ service, inject, injectable } = builder.buildDecorators(container));
+    ({ inject, injectable } = builder.buildDecorators(container));
   });
 
 
   describe('* service decorator', () => {
     describe('with specific name', () => {
       it('works as expected', async () => {
-        @service('AA')
+        @injectable('AA')
         class A {
         }
 
@@ -33,7 +32,7 @@ describe('ContainerDecoratorsBuilder', () => {
 
     describe('with auto name', () => {
       it('works as expected', async () => {
-        @service()
+        @injectable()
         class A {
         }
 
@@ -49,7 +48,7 @@ describe('ContainerDecoratorsBuilder', () => {
         class X {
         }
 
-        @service({ dependsOn: [X] })
+        @injectable({ dependsOn: [X] })
         class A {
           constructor(public readonly shouldBeX) {
           }
@@ -60,7 +59,7 @@ describe('ContainerDecoratorsBuilder', () => {
       });
 
       it('handles dependency resolution at runtime', async () => {
-        @service({ getDependencies: () => ['X'] })
+        @injectable({ getDependenciesList: () => ['X'] })
         class A {
           constructor(public readonly shouldBeX) {
           }

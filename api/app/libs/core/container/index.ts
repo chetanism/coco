@@ -11,7 +11,7 @@ export const serviceContainer: ServiceContainer = new ContainerBuilder().buildCo
 
 const {
   container,
-  decorators: { inject, injectable, service },
+  decorators: { inject, injectable },
 } = serviceContainer;
 
-export { container, injectable, inject, service };
+export { container, injectable, inject };

@@ -9,11 +9,11 @@ export class CommandPlugin extends AbstractPlugin {
   }
 
   registerServices(serviceContainer: ServiceContainer) {
-    const { decorators: { service } } = serviceContainer;
+    const { decorators: { injectable } } = serviceContainer;
 
-    service()(CommandServiceLocator);
+    injectable()(CommandServiceLocator);
 
-    service('cli.handler', {
+    injectable('cli.handler', {
       dependsOn: [CommandServiceLocator],
     })(CommandRunner);
   }

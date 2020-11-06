@@ -9,11 +9,11 @@ export class EventPlugin extends AbstractPlugin {
   }
 
   registerServices(serviceContainer: ServiceContainer, config: object) {
-    const { decorators: { service } } = serviceContainer;
+    const { decorators: { injectable } } = serviceContainer;
 
-    service()(EventListenerServiceLocator);
+    injectable()(EventListenerServiceLocator);
 
-    service({
+    injectable({
       dependsOn: [EventListenerServiceLocator]
     })(EventDispatcher);
   }

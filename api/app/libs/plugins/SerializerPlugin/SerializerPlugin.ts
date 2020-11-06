@@ -19,20 +19,20 @@ export class SerializerPlugin extends AbstractPlugin {
   }
 
   registerServices(serviceContainer: ServiceContainer, config: object) {
-    const { decorators: { service } } = serviceContainer;
+    const { decorators: { injectable } } = serviceContainer;
 
-    service()(DateNormalizer);
-    service()(NormalizerServiceLocator);
+    injectable()(DateNormalizer);
+    injectable()(NormalizerServiceLocator);
 
-    service({ alias: 'serializer.json' })(JSONSerializer);
-    service()(SerializerServiceLocator);
+    injectable({ alias: 'serializer.json' })(JSONSerializer);
+    injectable()(SerializerServiceLocator);
 
-    service({
+    injectable({
       dependsOn: [NormalizerServiceLocator],
     })(NormalizerService);
 
-    service({
-      async getDependencies(resolve) {
+    injectable({
+      async getDependenciesList(resolve) {
         return [
           config,
           await resolve(NormalizerService),
