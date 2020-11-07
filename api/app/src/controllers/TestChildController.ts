@@ -2,17 +2,15 @@ import { controller } from '../../libs/plugins/WebPlugin/decorators/controller';
 import { action } from '../../libs/plugins/WebPlugin/decorators/action';
 import { Response } from 'express';
 import { AbstractController } from '../../libs/plugins/WebPlugin/service/AbstractController';
-import { TestMiddleware } from '../middlewares/TestMiddleware';
-import { HelloMiddleware } from '../middlewares/HelloMiddleware';
+import { TestController } from './TestController';
 
 @controller({
-  route: '/test',
-  middlewares: [TestMiddleware],
+  route: '/child',
+  parent: TestController
 })
-export class TestController extends AbstractController {
+export class TestChildController extends AbstractController {
   @action({
     route: '/hello',
-    middlewares: [HelloMiddleware],
   })
   async sayHello(req, res: Response) {
     res.json({
@@ -25,10 +23,7 @@ export class TestController extends AbstractController {
     res.json({ msg: 'test' });
   }
 
-  @action({ route: '/woosh' })
-  async woosh(req, res) {
-    res.json({ msg: 'woosh' });
-  }
+
 }
 
 // @request

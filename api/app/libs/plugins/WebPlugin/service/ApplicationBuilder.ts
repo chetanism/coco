@@ -2,11 +2,13 @@ import 'reflect-metadata';
 import * as express from 'express';
 import { Application, Router } from 'express';
 import { ApplicationMiddlewareServiceLocator } from './ApplicationMiddlewareServiceLocator';
-import { AbstractApplicationMiddleware } from './AbstractApplicationMiddleware';
+import { AbstractApplicationMiddleware } from '../middlewares/AbstractApplicationMiddleware';
 import { ControllerLocator } from './ControllerLocator';
 import { ControllerKey, ControllerOptions } from '../decorators/controller';
 import { AbstractController } from './AbstractController';
 import { ActionKey } from '../decorators/action';
+import { MiddlewareServiceLocator } from './MiddlewareServiceLocator';
+import { AbstractMiddleware } from '../middlewares/AbstractMiddleware';
 
 export type ApplicationOptions = {
   staticPath?: string,
@@ -16,19 +18,21 @@ type RouterDefinition = {
   route: string,
   router: Router,
   parent: AbstractController,
+  self: AbstractController
 }
 
 export class ApplicationBuilder {
   constructor(
     private readonly options: ApplicationOptions = {},
-    private readonly middlewaresLocator: ApplicationMiddlewareServiceLocator,
+    private readonly applicationMiddlewaresLocator: ApplicationMiddlewareServiceLocator,
+    private readonly middlewaresLocator: MiddlewareServiceLocator,
     private readonly controllerLocator: ControllerLocator,
   ) {
   }
 
   async build() {
     const app: Application = express();
-    const middlewares: AbstractApplicationMiddleware[] = await this.middlewaresLocator.resolveAll();
+    const middlewares: AbstractApplicationMiddleware[] = await this.applicationMiddlewaresLocator.resolveAll();
 
     for (const middleware of middlewares) {
       const mw = middleware.middleware || middleware.get();
@@ -58,16 +62,20 @@ export class ApplicationBuilder {
       );
     }
 
+    // console.log(routerDefinitions);
+
     // bind to parent router
-    for (const { router, route, parent } of routerDefinitions.values()) {
+    for (const { router, route, parent, self } of routerDefinitions.values()) {
       if (parent) {
         const { router: parentRouter } = routerDefinitions.get(parent);
+        console.log('attaching ', self, ' to ', parent, ' at ', route)
         parentRouter.use(route, router);
       }
     }
 
     // pick root level routers
     const rootRouters = Array.from(routerDefinitions.values()).filter(({ parent }) => !parent);
+    // console.log(rootRouters);
 
     for(const rootRouter of rootRouters) {
       app.use(rootRouter.route, rootRouter.router);
@@ -79,12 +87,12 @@ export class ApplicationBuilder {
     const controllerOptions = Reflect.getOwnMetadata(ControllerKey, controller.constructor);
     const { route, middlewares, parent }: ControllerOptions = controllerOptions;
 
-    const resolvedMiddlewares: AbstractApplicationMiddleware[] = await Promise.all(
+    const resolvedMiddlewares: AbstractMiddleware[] = await Promise.all(
       (middlewares || []).map((mw) => this.middlewaresLocator.resolve(mw)),
     );
 
     for (const middleware of resolvedMiddlewares) {
-      const mw = middleware.middleware || middleware.get();
+      const mw = middleware.middleware;
       if (mw) {
         router.use(mw);
       }
@@ -96,6 +104,7 @@ export class ApplicationBuilder {
       router,
       route,
       parent: parent ? await this.controllerLocator.resolve(parent) : null,
+      self: controller,
     };
   }
 
@@ -106,12 +115,12 @@ export class ApplicationBuilder {
       // const actionOptions = Reflect.getOwnMetadata(ActionKey, controller);
       const { propertyKey, options: { route, methods, name, middlewares } } = action;
 
-      const resolvedMiddlewares: AbstractApplicationMiddleware[] = await Promise.all(
+      const resolvedMiddlewares: AbstractMiddleware[] = await Promise.all(
         (middlewares || []).map((amw) => this.middlewaresLocator.resolve(amw)),
       );
 
       const middlewaresToApply = resolvedMiddlewares
-        .map((mw) => mw.middleware || mw.get())
+        .map((mw) => mw.middleware)
         .filter((mw) => mw);
 
       const methodsToApply = methods || ['use'];

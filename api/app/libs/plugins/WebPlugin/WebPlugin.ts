@@ -10,6 +10,7 @@ import { ApplicationBuilder, ApplicationOptions } from './service/ApplicationBui
 import { ApplicationMiddlewareServiceLocator } from './service/ApplicationMiddlewareServiceLocator';
 import { ControllerLocator } from './service/ControllerLocator';
 import { ApplicationServer, ServerOptions } from './service/ApplicationServer';
+import { MiddlewareServiceLocator } from './service/MiddlewareServiceLocator';
 
 export type WebPluginOptions = {
   cors: CorsOptions | CorsOptionsDelegate | false,
@@ -55,11 +56,13 @@ export class WebPlugin extends AbstractPlugin {
       getDependenciesList: async (resolve) => [
         config.app,
         await resolve(ApplicationMiddlewareServiceLocator),
+        await resolve(MiddlewareServiceLocator),
         await resolve(ControllerLocator),
       ],
     })(ApplicationBuilder);
 
     injectable()(ApplicationMiddlewareServiceLocator);
+    injectable()(MiddlewareServiceLocator);
 
     injectable({
       getDependenciesList: async (resolve) => {

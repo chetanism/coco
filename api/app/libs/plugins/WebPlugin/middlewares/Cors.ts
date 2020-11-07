@@ -1,4 +1,4 @@
-import { AbstractApplicationMiddleware } from '../service/AbstractApplicationMiddleware';
+import { AbstractApplicationMiddleware } from './AbstractApplicationMiddleware';
 import { CorsOptions, CorsOptionsDelegate } from 'cors';
 import * as cors from 'cors';
 import { RequestHandler } from 'express';

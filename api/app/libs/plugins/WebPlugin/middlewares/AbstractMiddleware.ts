@@ -1,6 +1,5 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 
-export abstract class AbstractApplicationMiddleware {
+export abstract class AbstractMiddleware {
   middleware: RequestHandler | null = null;
-  abstract get(): RequestHandler | void;
 }

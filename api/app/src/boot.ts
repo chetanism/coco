@@ -13,6 +13,7 @@ const kernel = new Kernel({
     `${__dirname}/commands`,
     `${__dirname}/eventListeners`,
     `${__dirname}/controllers`,
+    `${__dirname}/middlewares`,
   ],
   config: appConfig,
 });

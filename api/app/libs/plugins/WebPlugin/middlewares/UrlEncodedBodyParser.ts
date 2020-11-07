@@ -1,4 +1,4 @@
-import { AbstractApplicationMiddleware } from '../service/AbstractApplicationMiddleware';
+import { AbstractApplicationMiddleware } from './AbstractApplicationMiddleware';
 import { RequestHandler } from 'express';
 import * as express from 'express';
 import { OptionsUrlencoded } from 'body-parser';

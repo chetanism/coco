@@ -1,4 +1,4 @@
-import { AbstractApplicationMiddleware } from '../service/AbstractApplicationMiddleware';
+import { AbstractApplicationMiddleware } from './AbstractApplicationMiddleware';
 import * as express from 'express';
 import { RequestHandler } from 'express';
 import { OptionsJson } from 'body-parser';
